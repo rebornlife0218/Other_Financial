@@ -1,0 +1,124 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 讀取資料
+file_path = '0050_17years.feather'
+data = pd.read_feather(file_path)
+data['Date'] = pd.to_datetime(data['Date'])
+data['Year'] = data['Date'].dt.year
+data['Month'] = data['Date'].dt.month
+
+# 讓使用者輸入月份和日期
+start_month = int(input("請輸入起始月份 (1-12): "))
+start_day = int(input("請輸入起始日期 (1-31): "))
+end_month = int(input("請輸入結束月份 (1-12): "))
+end_day = int(input("請輸入結束日期 (1-31): "))
+
+# 構建起始和結束日期
+data['Start_Date'] = pd.to_datetime(data['Year'].astype(str) + f'-{start_month:02d}-{start_day:02d}')
+data['End_Date'] = pd.to_datetime(data['Year'].astype(str) + f'-{end_month:02d}-{end_day:02d}')
+
+# 定義函數查找最近可用的日期
+def find_nearest_date(data, target_date):
+    offset = 1  # 從1開始
+    direction = -1  # 初始方向為向前查找
+    
+    while target_date not in data['Date'].values:
+        target_date += pd.DateOffset(days=direction * offset)  # 根據方向調整日期
+        
+        # 如果已經向前找過，則改為向後找，然後增加偏移量
+        if direction == -1 and target_date not in data['Date'].values:
+            direction = 1  # 轉向往後查找
+            
+        # 如果已經往後查找過，則改為往前查找，然後增加偏移量
+        elif direction == 1 and target_date not in data['Date'].values:
+            direction = -1  # 轉向往前查找
+            offset += 1  # 增加偏移量
+            
+    return target_date
+
+# 篩選出符合日期的數據
+buy_sell_data = []
+valid_years = []
+returns = []
+for year in data['Year'].unique():
+    year_data = data[data['Year'] == year]
+    
+    # 檢查該年是否有指定月份的數據
+    has_start_data = year_data['Month'].isin([start_month]).any()
+    has_end_data = year_data['Month'].isin([end_month]).any()
+
+    if has_start_data and has_end_data:
+        # 如果有該月份的數據，則查找最近可用的日期
+        start_date = find_nearest_date(year_data, data['Start_Date'].iloc[year_data.index[0]])
+        end_date = find_nearest_date(year_data, data['End_Date'].iloc[year_data.index[0]])
+
+    # 確保找到的日期存在於數據中
+    if (start_date in year_data['Date'].values) and (end_date in year_data['Date'].values):
+            buy_sell_data.append((start_date, end_date))
+            valid_years.append(year)  # 只有在有數據的情況下才加入年份
+
+            # 取得開盤價和收盤價
+            buy_price = year_data.loc[year_data['Date'] == start_date, 'Open'].values[0]
+            sell_price = year_data.loc[year_data['Date'] == end_date, 'Close'].values[0]
+
+            # 計算回報
+            return_pct = (sell_price - buy_price) / buy_price
+            returns.append(return_pct)
+
+            # 印出每年的買賣日期、買價和賣價
+            print(f"Year: {year} - Buy Date: {start_date.date()} - Buy Price: {buy_price:.2f} - Sell Date: {end_date.date()} - Sell Price: {sell_price:.2f} - Return: {return_pct:.2%}")
+
+# 確保有資料
+returns = []
+for year, (start_date, end_date) in zip(valid_years, buy_sell_data):
+    year_data = data[data['Year'] == year]
+
+    # 取得開盤價和收盤價
+    buy_price = year_data.loc[year_data['Date'] == start_date, 'Open'].values[0]
+    sell_price = year_data.loc[year_data['Date'] == end_date, 'Close'].values[0]
+
+    # 計算回報
+    return_pct = (sell_price - buy_price) / buy_price
+    returns.append(return_pct)
+
+# 將回報轉成DataFrame
+returns = np.array(returns)
+
+if len(returns) > 0:
+    # 計算return、Sharpe、Win rate
+    total_return = (1 + returns).prod() - 1  
+    average_return = returns.mean() * 100  
+    win_rate = (returns > 0).mean()
+    
+    # 計算maxDD
+    cumulative_returns = (1 + returns).cumprod() 
+    cumulative_returns = pd.Series(cumulative_returns)  # 轉換為 Series
+    drawdowns = cumulative_returns / cumulative_returns.cummax() - 1 
+    max_drawdown = drawdowns.min()  
+
+    # 計算Sharpe Ratio
+    risk_free_rate = 0
+    sharpe_ratio = (returns.mean() - risk_free_rate) / returns.std()
+
+    print("=" * 120)
+    print(f"Total Return: {total_return:.2%}")
+    print(f"Average Return: {average_return:.2f}%")
+    print(f"Win Rate: {win_rate:.2%}")
+    print(f"Max Drawdown: {max_drawdown:.2%}")
+    print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
+    
+    # 繪製權益曲線
+    plt.figure(figsize=(12, 6))
+    plt.plot(cumulative_returns, color='blue', label='Cumulative Returns', marker='o')
+    plt.title('Equity Curve')
+    plt.xlabel('Years')
+    plt.ylabel('Cumulative Returns')
+    plt.xticks(ticks=range(len(returns)), labels=valid_years)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+else:
+    print("沒有有效的回報數據。")
