@@ -1,0 +1,88 @@
+import pandas as pd
+
+# 讀取資料
+file_path = '2330_25years.feather'
+data = pd.read_feather(file_path)
+data['Date'] = pd.to_datetime(data['Date'])
+data['Year'] = data['Date'].dt.year
+data['Month'] = data['Date'].dt.month
+
+# 定義分析函數
+def analyze_turnaround(month_data, current_period):
+    periods = ['Early', 'Half', 'Late']
+    changes = []
+    reversal_count = 0  # 初始化反轉計數器
+
+    # 確保提供的期間是有效的
+    if current_period not in periods:
+        print("無效的期間，請使用 'Early', 'Half', 'Late'")
+        return changes
+
+    current_index = periods.index(current_period)
+
+    # 分析每個年份的資料
+    for year in month_data['Year'].unique():
+        year_data = month_data[month_data['Year'] == year]
+
+        # 取得當前期間的數據
+        period_data = None
+        if current_period == 'Early':
+            period_data = year_data[year_data['Date'].dt.day <= 10]
+        elif current_period == 'Half':
+            period_data = year_data[(year_data['Date'].dt.day > 10) & (year_data['Date'].dt.day <= 20)]
+        elif current_period == 'Late':
+            period_data = year_data[year_data['Date'].dt.day > 20]
+
+        if not period_data.empty:
+            first_day = period_data.iloc[0]
+            last_day = period_data.iloc[-1]
+            pct_change = (last_day['Adj Close'] - first_day['Adj Close']) / first_day['Adj Close']
+            changes.append({'Year': year, 'Current Period': current_period, 'Pct Change': pct_change})
+
+            # 檢查前一期的變化
+            if current_index > 0:  # 確保前一期存在
+                previous_period = periods[current_index - 1]
+                previous_period_data = None
+                
+                if previous_period == 'Early':
+                    previous_period_data = year_data[year_data['Date'].dt.day <= 10]
+                elif previous_period == 'Half':
+                    previous_period_data = year_data[(year_data['Date'].dt.day > 10) & (year_data['Date'].dt.day <= 20)]
+                elif previous_period == 'Late':
+                    previous_period_data = year_data[year_data['Date'].dt.day > 20]
+
+                if not previous_period_data.empty:
+                    first_previous_day = previous_period_data.iloc[0]
+                    last_previous_day = previous_period_data.iloc[-1]
+                    previous_pct_change = (last_previous_day['Adj Close'] - first_previous_day['Adj Close']) / first_previous_day['Adj Close']
+
+                    # 輸出結果
+                    print(f"Year: {year}")
+                    print(f"  Current Period: {current_period}, Percentage Change: {pct_change * 100:.2f}%")
+                    print(f"  Previous Period: {previous_period}, Previous Percentage Change: {previous_pct_change * 100:.2f}%")
+                    
+                    # 檢查是否反轉
+                    if (pct_change > 0 and previous_pct_change < 0) or (pct_change < 0 and previous_pct_change > 0):
+                        print("  反轉")
+                        reversal_count += 1  # 增加反轉計數
+                    else:
+                        print("  無反轉")
+
+            print("-" * 40)  # 劃出分隔線
+
+    print(f"總反轉次數: {reversal_count}")  # 輸出反轉總數
+    return changes
+
+# 請使用者輸入月份和期間字首
+month_input = int(input("請輸入月份（1-12）: "))
+period_input = input("請輸入期間字首（E: Early, H: Half, L: Late）: ").strip().upper()
+
+# 將字首轉換為完整的期間名稱
+period_mapping = {'E': 'Early', 'H': 'Half', 'L': 'Late'}
+period = period_mapping.get(period_input)
+
+# 只分析指定月份的數據
+month_data = data[data['Month'] == month_input]
+
+# 分析轉折
+analyze_turnaround(month_data, period)
