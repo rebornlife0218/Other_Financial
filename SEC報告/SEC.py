@@ -1,17 +1,10 @@
-# https://medium.com/@The-Quant-Trading-Room/quant-traders-toolkit-fundamental-data-on-steroids-a-300-value-absolutely-free-full-code-bc9784b9fec6
-
-import warnings
-warnings.filterwarnings('ignore')
-
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
 import requests
-
-# View Dataframe as an interactive table in Jupyter Notebook
-# from itables import init_notebook_mode
-# init_notebook_mode(all_interactive=True)
+import warnings
+warnings.filterwarnings('ignore')
 
 # 公司 CIK 資料取得
 def get_companies_dct(headers):
@@ -120,6 +113,7 @@ ticker = 'AAPL'
 cik = cik_dct[ticker]
 comp_df = get_data(ticker, cik)
 print(comp_df)
+
 # 定義財報項目的分類
 categories = {
     '資產負債表': ['Assets', 'Liabilities', 'Equity', 'CommonStockShares', 'ContractWithCustomerLiability_USD', 'ContractWithCustomerLiabilityCurrent_USD', 'DebtInstrument', 'Deferred', 'Unrecorded', 
@@ -165,4 +159,3 @@ ax[4].plot(comp_df.OperatingExpenses_USD)
 ax[4].set_title("OperatingExpenses_USD")
 fig.tight_layout()
 plt.show()
-
