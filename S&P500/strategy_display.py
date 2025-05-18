@@ -33,7 +33,8 @@ if selected_strategy:
         st.write(strategy_descriptions[selected_strategy])
         st.write("**回測數據**：")
         st.text(backtesting[selected_strategy])
-        st.image(image_path, caption=selected_strategy, use_container_width=True)
+        with open(image_path, "rb") as img_file:
+            st.image(img_file, caption=selected_strategy, use_container_width=True)
         st.markdown("---")
         st.markdown("<div style='text-align: center; color: gray;'>由操盤人講堂第一組製作 2025.05</div>", unsafe_allow_html=True) 
     except FileNotFoundError:
