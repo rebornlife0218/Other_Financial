@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 
-st.write("目前工作目錄：", os.getcwd())
 # 頁面標題
 st.title("S&P500 策略展示")
 
@@ -9,8 +8,8 @@ st.title("S&P500 策略展示")
 strategy_descriptions = {
     "Strategy 1": "上一季報酬表現最好的10檔，等權重持有。",
     "Strategy 2": "上一季報酬表現最差的10檔，等權重持有。",
-    "Strategy 3": "上一季表現最好的20檔，再以sharpe極大為目標分配權重。",
-    "Strategy 4": "上一季表現最好的20檔，再篩選波動率前10小。"
+    "Strategy 3": "上一季sharpe表現最好的20檔，再以極大化sharpe為目標自動分配權重。",
+    "Strategy 4": "上一季報酬表現最好的20檔，從中再篩選波動率較小的10檔。"
 }
 
 # 回測數據字典
