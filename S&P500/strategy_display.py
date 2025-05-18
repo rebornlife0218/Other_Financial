@@ -27,7 +27,7 @@ selected_strategy = st.selectbox("請選擇一個策略：", strategy_options)
 # 顯示對應的圖片與說明
 if selected_strategy:
     # 圖片檔案路徑
-    image_path = os.path.join("Other_Financial", "S&P500", f"Strategy{strategy_options.index(selected_strategy) + 1}.jpg")
+    image_path = os.path.join(f"Strategy{strategy_options.index(selected_strategy) + 1}.jpg")
     
     try:
         st.write("**策略說明**：")
